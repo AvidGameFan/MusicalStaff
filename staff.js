@@ -5,18 +5,18 @@ class MusicalStaff {
         this.noteDisplay = document.getElementById('note-display');
         
         // Set canvas size with proper scaling
-        this.canvas.style.width = '800px';
+        this.canvas.style.width = '650px';
         this.canvas.style.height = '400px';
-        this.canvas.width = 800 * window.devicePixelRatio;
-        this.canvas.height = 400 * window.devicePixelRatio;
-        this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        this.pixelRatio = window.devicePixelRatio || 1;
+        this.canvas.width = 650 * this.pixelRatio;
+        this.canvas.height = 400 * this.pixelRatio;
         
-        this.noteRadius = 8;
-        this.lineSpacing = 15;
-        this.staffX = 60;
-        this.trebleStaffY = 100;  // Moved down to accommodate ledger lines
-        this.bassStaffY = 250;    // Moved down to accommodate ledger lines
-        this.staffWidth = 700;
+        this.noteRadius = 10;
+        this.lineSpacing = 20;
+        this.staffX = 100;
+        this.trebleStaffY = 80;  // Moved down to accommodate ledger lines
+        this.bassStaffY = 240;    // Moved down to accommodate ledger lines
+        this.staffWidth = 500;
         
         // Initialize Web Audio API
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -27,12 +27,21 @@ class MusicalStaff {
         // Store active notes for visual feedback
         this.activeNotes = [];
         
+        // Track first draw
+        this.isFirstDraw = true;
+        
         // Draw initial staff
         this.draw();
     }
 
     draw() {
+        // Reset transform and clear
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Apply scaling
+        this.ctx.scale(this.pixelRatio, this.pixelRatio);
+        
         this.drawClefs();
         this.drawStaffLines(this.trebleStaffY); // Treble staff
         this.drawStaffLines(this.bassStaffY);   // Bass staff
@@ -41,11 +50,36 @@ class MusicalStaff {
 
     drawClefs() {
         this.ctx.fillStyle = '#000';
-        this.ctx.font = '60px serif';
+        this.ctx.font = '80px serif';
         // Treble clef (G clef)
-        this.ctx.fillText('𝄞', 20, this.trebleStaffY + 50);
+        const trebleX = this.isFirstDraw ? 15 : 60;
+        const bassX =  this.isFirstDraw ? 15 : 70;
+        //const trebleX = (this.isFirstDraw ? 10 : 40)*this.pixelRatio;
+        //const bassX =  (this.isFirstDraw ? 10 : 40)*this.pixelRatio;
+        this.ctx.fillText('𝄞', trebleX, this.trebleStaffY + 65);
         // Bass clef (F clef)
-        this.ctx.fillText('𝄢', 20, this.bassStaffY + 55);
+        this.ctx.fillText('𝄢', bassX, this.bassStaffY + 70);
+
+        // Draw note letters
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'right';
+        
+        // Treble staff note letters (from bottom to top)
+        const trebleNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5'];
+        for (let i = 0; i < trebleNotes.length; i++) {
+            const y = this.trebleStaffY + (5 - i/2) * this.lineSpacing;
+            this.ctx.fillText(trebleNotes[i], this.staffX - 10 + 10*(i%2), y + 4);
+        }
+
+        // Bass staff note letters (from bottom to top)
+        const bassNotes = ['F2', 'G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4'];
+        for (let i = 0; i < bassNotes.length; i++) {
+            const y = this.bassStaffY + (4.5 - i/2) * this.lineSpacing;
+            this.ctx.fillText(bassNotes[i], this.staffX - 10 + 10*((i+1)%2), y + 4);
+        }
+        
+        // Update first draw flag
+        this.isFirstDraw = false;
     }
 
     drawStaffLines(startY) {
@@ -97,19 +131,21 @@ class MusicalStaff {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         
-        // Scale coordinates based on canvas size
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        const canvasX = x * scaleX / window.devicePixelRatio;
-        const canvasY = y * scaleY / window.devicePixelRatio;
+        // Convert click coordinates to canvas coordinates
+        const canvasX = (x * this.canvas.width) / rect.width;
+        const canvasY = (y * this.canvas.height) / rect.height;
+        
+        // Convert to logical coordinates (accounting for pixel ratio)
+        const logicalX = canvasX / this.pixelRatio;
+        const logicalY = canvasY / this.pixelRatio;
 
         // Check if click is within staff area
-        if (canvasX >= this.staffX && canvasX <= this.staffX + this.staffWidth) {
-            const result = this.getFrequencyFromPosition(canvasY);
+        if (logicalX >= this.staffX && logicalX <= this.staffX + this.staffWidth) {
+            const result = this.getFrequencyFromPosition(logicalY);
             if (result) {
                 this.playNote(result.frequency);
                 this.activeNotes.push({
-                    x: canvasX,
+                    x: logicalX,
                     y: result.y,  // Use the calculated staff position instead of click position
                     timestamp: performance.now()
                 });
