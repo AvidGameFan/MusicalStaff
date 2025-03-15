@@ -57,8 +57,8 @@ class MusicalStaff {
             // Adjust staff dimensions
             this.noteRadius = isMobile ? 8 : 10;
             this.lineSpacing = isMobile ? 15 : 20;
-            this.staffX = width * 0.15;
-            this.staffWidth = width * 0.7;
+            this.staffX = width * 0.25;
+            this.staffWidth = width * 0.6;
         } else {
             // Desktop dimensions
             this.canvas.style.width = '650px';
