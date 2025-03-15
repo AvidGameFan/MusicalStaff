@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Musical Staff</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #note-display {
+            background-color: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 18px;
+            min-width: 200px;
+            text-align: center;
+        }
+        #staff-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 1px solid #ddd;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Musical Staff</h1>
+    <div id="note-display">Click on the staff to play notes</div>
+    <div id="staff-container">
+        <canvas id="staff" width="800" height="400"></canvas>
+    </div>
+    <script src="staff.js"></script>
+</body>
+</html> 
