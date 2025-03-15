@@ -4,22 +4,20 @@ class MusicalStaff {
         this.ctx = this.canvas.getContext('2d');
         this.noteDisplay = document.getElementById('note-display');
         
-        // Set canvas size with proper scaling
-        this.canvas.style.width = '650px';
-        this.canvas.style.height = '400px';
-        this.pixelRatio = window.devicePixelRatio || 1;
-        this.canvas.width = 650 * this.pixelRatio;
-        this.canvas.height = 400 * this.pixelRatio;
+        // Track first draw
+        this.isFirstDraw = true;
+
+        // Initialize dimensions based on screen size
+        this.initDimensions();
         
-        this.noteRadius = 10;
-        this.lineSpacing = 20;
-        this.staffX = 100;
-        this.trebleStaffY = 80;  // Moved down to accommodate ledger lines
-        this.bassStaffY = 240;    // Moved down to accommodate ledger lines
-        this.staffWidth = 500;
-        
-        // Initialize Web Audio API
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Handle resize events
+        window.addEventListener('resize', () => {
+            this.initDimensions();
+            this.draw();
+        });
+
+        // Initialize audio context but don't create it yet (wait for user interaction)
+        this.audioContext = null;
         
         // Set up click handling
         this.canvas.addEventListener('click', this.handleClick.bind(this));
@@ -27,11 +25,75 @@ class MusicalStaff {
         // Store active notes for visual feedback
         this.activeNotes = [];
         
-        // Track first draw
-        this.isFirstDraw = true;
-        
         // Draw initial staff
         this.draw();
+    }
+
+    initDimensions() {
+        // Set pixel ratio first
+        this.pixelRatio = window.devicePixelRatio || 1;
+        
+        const isMobile = window.innerWidth <= 768;
+        const isPortrait = window.innerHeight > window.innerWidth;
+        
+        if (isMobile) {
+            // For mobile, use viewport-relative sizing
+            const canvasWidth = isPortrait ? '95vw' : '80vw';
+            const canvasHeight = isPortrait ? '70vh' : '60vh';
+            this.canvas.style.width = canvasWidth;
+            this.canvas.style.height = canvasHeight;
+            
+            // Force a layout calculation to get actual size
+            this.canvas.getBoundingClientRect();
+            
+            // Get actual size in pixels after layout
+            const computedStyle = window.getComputedStyle(this.canvas);
+            const width = parseFloat(computedStyle.width);
+            const height = parseFloat(computedStyle.height);
+            
+            this.canvas.width = width * this.pixelRatio;
+            this.canvas.height = height * this.pixelRatio;
+            
+            // Adjust staff dimensions
+            this.noteRadius = isMobile ? 8 : 10;
+            this.lineSpacing = isMobile ? 15 : 20;
+            this.staffX = width * 0.15;
+            this.staffWidth = width * 0.7;
+        } else {
+            // Desktop dimensions
+            this.canvas.style.width = '650px';
+            this.canvas.style.height = '400px';
+            this.canvas.width = 650 * this.pixelRatio;
+            this.canvas.height = 400 * this.pixelRatio;
+            
+            this.noteRadius = 10;
+            this.lineSpacing = 20;
+            this.staffX = 100;
+            this.staffWidth = 500;
+        }
+        
+        // Staff Y positions remain proportional
+        const logicalHeight = this.canvas.height / this.pixelRatio;
+        this.trebleStaffY = logicalHeight * 0.2;
+        this.bassStaffY = logicalHeight * 0.6;
+        
+
+    }
+
+    initAudio() {
+        if (this.audioContext) return;
+        
+        // Create audio context with iOS-compatible options
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioContext = new AudioContext({
+            latencyHint: 'interactive',
+            sampleRate: 44100
+        });
+        
+        // iOS requires resume on user interaction
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
     }
 
     draw() {
@@ -41,6 +103,7 @@ class MusicalStaff {
         
         // Apply scaling
         this.ctx.scale(this.pixelRatio, this.pixelRatio);
+
         
         this.drawClefs();
         this.drawStaffLines(this.trebleStaffY); // Treble staff
@@ -49,16 +112,23 @@ class MusicalStaff {
     }
 
     drawClefs() {
+        const isMobile = window.innerWidth <= 768;
+
         this.ctx.fillStyle = '#000';
         this.ctx.font = '80px serif';
         // Treble clef (G clef)
-        const trebleX = this.isFirstDraw ? 15 : 60;
-        const bassX =  this.isFirstDraw ? 15 : 70;
-        //const trebleX = (this.isFirstDraw ? 10 : 40)*this.pixelRatio;
-        //const bassX =  (this.isFirstDraw ? 10 : 40)*this.pixelRatio;
-        this.ctx.fillText('𝄞', trebleX, this.trebleStaffY + 65);
+        // Adjust clef positions based on screen size
+        if (isMobile) {
+            this.trebleClefX = this.isFirstDraw ? this.staffX - 85 : this.staffX - 40;
+            this.bassClefX = this.isFirstDraw ? this.staffX - 85 : this.staffX - 30;
+        } else {
+            this.trebleClefX = this.isFirstDraw ? 15 : 60;
+            this.bassClefX = this.isFirstDraw ? 15 : 70;
+        }
+
+        this.ctx.fillText('𝄞', this.trebleClefX, this.trebleStaffY + 65);
         // Bass clef (F clef)
-        this.ctx.fillText('𝄢', bassX, this.bassStaffY + 70);
+        this.ctx.fillText('𝄢', this.bassClefX, this.bassStaffY + 70);
 
         // Draw note letters
         this.ctx.font = '12px Arial';
@@ -127,6 +197,9 @@ class MusicalStaff {
     }
 
     handleClick(event) {
+        // Initialize audio on first click
+        this.initAudio();
+        
         const rect = this.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
@@ -146,7 +219,7 @@ class MusicalStaff {
                 this.playNote(result.frequency);
                 this.activeNotes.push({
                     x: logicalX,
-                    y: result.y,  // Use the calculated staff position instead of click position
+                    y: result.y,
                     timestamp: performance.now()
                 });
                 
