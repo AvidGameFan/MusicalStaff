@@ -325,7 +325,51 @@ class MusicalStaff {
         return null;
     }
 
+    initAudio() {
+        if (this.audioContext) return;
+        
+        // Create audio context with iOS-compatible options
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        
+        // iOS Safari specific setup
+        const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (iOS) {
+            // Create a silent buffer and play it to unlock the audio
+            const silentBuffer = new AudioContext().createBuffer(1, 1, 22050);
+            const source = new AudioContext().createBufferSource();
+            source.buffer = silentBuffer;
+            source.connect(new AudioContext().destination);
+            source.start(0);
+            // Only after the silent buffer, create the real audio context
+            setTimeout(() => {
+                this.audioContext = new AudioContext({
+                    sampleRate: 44100,
+                    latencyHint: 'interactive'
+                });
+            }, 100);
+        } else {
+            // Non-iOS setup
+            this.audioContext = new AudioContext({
+                latencyHint: 'interactive',
+                sampleRate: 44100
+            });
+        }
+    }
+
     playNote(frequency) {
+        // Make sure audio context exists and is running
+        if (!this.audioContext) {
+            this.initAudio();
+            // Wait a bit for iOS audio context to initialize
+            setTimeout(() => this.playNote(frequency), 200);
+            return;
+        }
+
+        // Resume audio context if suspended (required for iOS)
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+
         const oscillator = this.audioContext.createOscillator();
         const gainNode = this.audioContext.createGain();
         
