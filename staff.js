@@ -506,7 +506,7 @@ getFrequencyFromPosition(y) {
     return null;
 }
 
-    //ensure audio works for iOs -- unsure how necessary this is
+    //ensure audio works for iOs 
     initAudio() {
         if (this.audioContext) return;
         
@@ -516,19 +516,25 @@ getFrequencyFromPosition(y) {
         // iOS Safari specific setup
         const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         if (iOS) {
-            // Create a silent buffer and play it to unlock the audio
-            const silentBuffer = new AudioContext().createBuffer(1, 1, 22050);
-            const source = new AudioContext().createBufferSource();
-            source.buffer = silentBuffer;
-            source.connect(new AudioContext().destination);
+            // Create and resume the audio context immediately
+            this.audioContext = new AudioContext({
+                sampleRate: 44100,
+                latencyHint: 'interactive'
+            });
+            
+            // Create and play a silent buffer to unlock the audio
+            const buffer = this.audioContext.createBuffer(1, 1, 22050);
+            const source = this.audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.audioContext.destination);
             source.start(0);
-            // Only after the silent buffer, create the real audio context
-            setTimeout(() => {
-                this.audioContext = new AudioContext({
-                    sampleRate: 44100,
-                    latencyHint: 'interactive'
-                });
-            }, 100);
+            
+            // Ensure audio context is resumed on touch
+            document.addEventListener('touchstart', () => {
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }, { once: true });
         } else {
             // Non-iOS setup
             this.audioContext = new AudioContext({
