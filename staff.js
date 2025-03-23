@@ -24,9 +24,6 @@ class MusicalStaff {
         
         // Store active notes for visual feedback
         this.activeNotes = [];
-        
-        // Draw initial staff
-        this.draw();
 
         // Add key signature handling
         this.keySelector = document.getElementById('key-selector');
@@ -37,6 +34,11 @@ class MusicalStaff {
         
         // Initialize key signature data
         this.initKeySignatures();
+
+        this.updateKey(); // Set initial key (C major by default) 
+
+        // Draw initial staff
+        this.draw();
     }
 
     initDimensions() {
@@ -140,44 +142,85 @@ class MusicalStaff {
         // Bass clef (F clef)
         this.ctx.fillText('𝄢', this.bassClefX, this.bassStaffY + 70);
 
-        // Draw note letters
+        // Draw key signature symbols (sharps or flats)
+        this.drawKeySignature();
+
+        // Draw note letters with accidentals
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'right';
         
-        // Treble staff note letters (from bottom to top)
-        const trebleNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5'];
-        for (let i = 0; i < trebleNotes.length; i++) {
-            const y = this.trebleStaffY + (5 - i/2) * this.lineSpacing;
-            this.ctx.fillText(trebleNotes[i], this.staffX - 10 + 10*(i%2), y + 4);
-        }
-
-        // Bass staff note letters (from bottom to top)
-        const bassNotes = ['F2', 'G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4'];
-        for (let i = 0; i < bassNotes.length; i++) {
-            const y = this.bassStaffY + (4.5 - i/2) * this.lineSpacing;
-            this.ctx.fillText(bassNotes[i], this.staffX - 10 + 10*((i+1)%2), y + 4);
-        }
-
-        // Update note letter display to show accidentals
-        this.ctx.font = '12px Arial';
-        this.ctx.textAlign = 'right';
+        // Generate treble staff note letters (from bottom to top)
+        const trebleNoteLetters = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'A'];
+        const trebleOctaves = [4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5];
         
         // Draw treble staff note letters
-        for (let i = 0; i < trebleNotes.length; i++) {
+        for (let i = 0; i < trebleNoteLetters.length; i++) {
             const y = this.trebleStaffY + (5 - i/2) * this.lineSpacing;
-            this.ctx.fillText(trebleNotes[i], 
-                            this.staffX - 10 + 10*(i%2), y + 4);
+            const noteName = this.getNoteNameInKey(trebleNoteLetters[i], trebleOctaves[i]);
+            this.ctx.fillText(noteName, this.staffX - 10 + 10*(i%2), y + 4);
         }
 
+        // Generate bass staff note letters (from bottom to top)
+        const bassNoteLetters = ['F', 'G', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
+        const bassOctaves = [2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4];
+        
         // Draw bass staff note letters
-        for (let i = 0; i < bassNotes.length; i++) {
+        for (let i = 0; i < bassNoteLetters.length; i++) {
             const y = this.bassStaffY + (4.5 - i/2) * this.lineSpacing;
-            this.ctx.fillText(bassNotes[i], 
-                            this.staffX - 10 + 10*((i+1)%2), y + 4);
+            const noteName = this.getNoteNameInKey(bassNoteLetters[i], bassOctaves[i]);
+            this.ctx.fillText(noteName, this.staffX - 10 + 10*((i+1)%2), y + 4);
         }
-
+        
         // Update first draw flag
         this.isFirstDraw = false;
+    }
+
+    drawKeySignature() {
+        this.ctx.font = '24px serif';
+        this.ctx.textAlign = 'left';
+        
+        const sharpSymbol = '♯';
+        const flatSymbol = '♭';
+        
+        // Define vertical positions for accidentals (relative to staff lines)
+        const sharpPositions = {
+            'F': 0,    // on bottom line (treble) or second line from top (bass)
+            'C': 2.5,  // third space (treble) or top space (bass)
+            'G': -0.5, // second space (treble) or fourth space (bass)
+            'D': 2     // third line (treble) or top line (bass)
+        };
+        
+        const flatPositions = {
+            'B': 1,    // middle line (treble) or third line (bass)
+            'E': 2,    // top line (treble) or fourth line (bass)
+            'A': 0,    // bottom line (treble) or second line (bass)
+            'D': 1.5   // second space (treble) or third space (bass)
+        };
+
+        // Draw accidentals for both staffs
+        const keyX = this.staffX + 10;  // Position just after clef
+        
+        if (this.currentKey.sharps.length > 0) {
+            this.currentKey.sharps.forEach((note, i) => {
+                // Treble staff
+                const trebleY = this.trebleStaffY + (sharpPositions[note] * this.lineSpacing);
+                this.ctx.fillText(sharpSymbol, keyX + (i * 15), trebleY + 8);
+                
+                // Bass staff
+                const bassY = this.bassStaffY + (sharpPositions[note] * this.lineSpacing);
+                this.ctx.fillText(sharpSymbol, keyX + (i * 15), bassY + 8);
+            });
+        } else if (this.currentKey.flats.length > 0) {
+            this.currentKey.flats.forEach((note, i) => {
+                // Treble staff
+                const trebleY = this.trebleStaffY + (flatPositions[note] * this.lineSpacing);
+                this.ctx.fillText(flatSymbol, keyX + (i * 15), trebleY + 8);
+                
+                // Bass staff
+                const bassY = this.bassStaffY + (flatPositions[note] * this.lineSpacing);
+                this.ctx.fillText(flatSymbol, keyX + (i * 15), bassY + 8);
+            });
+        }
     }
 
     drawStaffLines(startY) {
@@ -416,6 +459,7 @@ getFrequencyFromPosition(y) {
     return null;
 }
 
+    //ensure audio works for iOs -- unsure how necessary this is
     initAudio() {
         if (this.audioContext) return;
         
