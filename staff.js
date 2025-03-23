@@ -29,6 +29,17 @@ class MusicalStaff {
         // Set up click handling
         this.canvas.addEventListener('click', this.handleClick.bind(this));
         this.canvas.addEventListener('touchstart', this.handleTouch.bind(this));
+
+        // Only prevent default on the canvas itself when needed
+        this.canvas.addEventListener('touchmove', (e) => {
+            // Only prevent default if the touch is within the staff area
+            const touch = e.touches[0];
+            const rect = this.canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            if (x >= this.staffX && x <= this.staffX + this.staffWidth) {
+                e.preventDefault();
+            }
+        }, { passive: false });
         
         // Store active notes for visual feedback
         this.activeNotes = [];
@@ -313,6 +324,9 @@ class MusicalStaff {
        // Add new touch handler method
        handleTouch(event) {
         //event.preventDefault(); // Prevent scrolling
+
+        event.stopPropagation(); // Stop event bubbling
+
         // Initialize audio on first click
         this.initAudio();
         
