@@ -28,6 +28,7 @@ class MusicalStaff {
         
         // Set up click handling
         this.canvas.addEventListener('click', this.handleClick.bind(this));
+        this.canvas.addEventListener('touchstart', this.handleTouch.bind(this));
         
         // Store active notes for visual feedback
         this.activeNotes = [];
@@ -308,6 +309,45 @@ class MusicalStaff {
             }
         }
     }
+
+       // Add new touch handler method
+       handleTouch(event) {
+        //event.preventDefault(); // Prevent scrolling
+        // Initialize audio on first click
+        this.initAudio();
+        
+        const touch = event.touches[0];
+        const rect = this.canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // Convert touch coordinates to canvas coordinates
+        const canvasX = (x * this.canvas.width) / rect.width;
+        const canvasY = (y * this.canvas.height) / rect.height;
+        
+        // Convert to logical coordinates (accounting for pixel ratio)
+        const logicalX = canvasX / this.pixelRatio;
+        const logicalY = canvasY / this.pixelRatio;
+
+        // Check if touch is within staff area
+        if (logicalX >= this.staffX && logicalX <= this.staffX + this.staffWidth) {
+            const result = this.getFrequencyFromPosition(logicalY);
+            if (result) {
+                this.playNote(result.frequency);
+                this.activeNotes.push({
+                    x: logicalX,
+                    y: result.y,
+                    timestamp: performance.now()
+                });
+                
+                // Update note display
+                this.noteDisplay.textContent = `${result.noteName} (${Math.round(result.frequency)} Hz)`;
+                
+                this.draw();
+            }
+        }
+    }
+
 //--------------- Key handling -----------------
 initKeySignatures() {
     // Define key signatures and their accidentals
