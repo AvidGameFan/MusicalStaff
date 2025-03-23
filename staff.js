@@ -12,8 +12,15 @@ class MusicalStaff {
         
         // Handle resize events
         window.addEventListener('resize', () => {
+            // Don't treat resize events as first draw
+            //const wasFirstDraw = this.isFirstDraw;
+            this.isFirstDraw = true;
+            
             this.initDimensions();
             this.draw();
+            
+            // Restore first draw state if we haven't had our first draw yet
+            //this.isFirstDraw = wasFirstDraw;
         });
 
         // Initialize audio context but don't create it yet (wait for user interaction)
@@ -185,16 +192,16 @@ class MusicalStaff {
         // Define vertical positions for accidentals (relative to staff lines)
         const sharpPositions = {
             'F': 0,    // on bottom line (treble) or second line from top (bass)
-            'C': 2.5,  // third space (treble) or top space (bass)
+            'C': 1.5,  // third space (treble) or top space (bass)
             'G': -0.5, // second space (treble) or fourth space (bass)
-            'D': 2     // third line (treble) or top line (bass)
+            'D': 1     // third line (treble) or top line (bass)
         };
         
         const flatPositions = {
-            'B': 1,    // middle line (treble) or third line (bass)
-            'E': 2,    // top line (treble) or fourth line (bass)
-            'A': 0,    // bottom line (treble) or second line (bass)
-            'D': 1.5   // second space (treble) or third space (bass)
+            'B': 2,    // middle line (treble) or third line (bass)
+            'E': .5,    // top line (treble) or fourth line (bass)
+            'A': 2.5,    // bottom line (treble) or second line (bass)
+            'D': 1   // second space (treble) or third space (bass)
         };
 
         // Draw accidentals for both staffs
@@ -207,7 +214,7 @@ class MusicalStaff {
                 this.ctx.fillText(sharpSymbol, keyX + (i * 15), trebleY + 8);
                 
                 // Bass staff
-                const bassY = this.bassStaffY + (sharpPositions[note] * this.lineSpacing);
+                const bassY = this.bassStaffY + ((sharpPositions[note] +1)* this.lineSpacing);
                 this.ctx.fillText(sharpSymbol, keyX + (i * 15), bassY + 8);
             });
         } else if (this.currentKey.flats.length > 0) {
@@ -217,7 +224,7 @@ class MusicalStaff {
                 this.ctx.fillText(flatSymbol, keyX + (i * 15), trebleY + 8);
                 
                 // Bass staff
-                const bassY = this.bassStaffY + (flatPositions[note] * this.lineSpacing);
+                const bassY = this.bassStaffY + ((flatPositions[note] +1) * this.lineSpacing);
                 this.ctx.fillText(flatSymbol, keyX + (i * 15), bassY + 8);
             });
         }
