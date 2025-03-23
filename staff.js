@@ -27,6 +27,16 @@ class MusicalStaff {
         
         // Draw initial staff
         this.draw();
+
+        // Add key signature handling
+        this.keySelector = document.getElementById('key-selector');
+        this.keySelector.addEventListener('change', () => {
+            this.updateKey();
+            this.draw();
+        });
+        
+        // Initialize key signature data
+        this.initKeySignatures();
     }
 
     initDimensions() {
@@ -147,7 +157,25 @@ class MusicalStaff {
             const y = this.bassStaffY + (4.5 - i/2) * this.lineSpacing;
             this.ctx.fillText(bassNotes[i], this.staffX - 10 + 10*((i+1)%2), y + 4);
         }
+
+        // Update note letter display to show accidentals
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'right';
         
+        // Draw treble staff note letters
+        for (let i = 0; i < trebleNotes.length; i++) {
+            const y = this.trebleStaffY + (5 - i/2) * this.lineSpacing;
+            this.ctx.fillText(trebleNotes[i], 
+                            this.staffX - 10 + 10*(i%2), y + 4);
+        }
+
+        // Draw bass staff note letters
+        for (let i = 0; i < bassNotes.length; i++) {
+            const y = this.bassStaffY + (4.5 - i/2) * this.lineSpacing;
+            this.ctx.fillText(bassNotes[i], 
+                            this.staffX - 10 + 10*((i+1)%2), y + 4);
+        }
+
         // Update first draw flag
         this.isFirstDraw = false;
     }
@@ -230,100 +258,163 @@ class MusicalStaff {
             }
         }
     }
+//--------------- Key handling -----------------
+initKeySignatures() {
+    // Define key signatures and their accidentals
+    this.keySignatures = {
+        'C':  { sharps: [], flats: [] },
+        'G':  { sharps: ['F'], flats: [] },
+        'D':  { sharps: ['F', 'C'], flats: [] },
+        'A':  { sharps: ['F', 'C', 'G'], flats: [] },
+        'E':  { sharps: ['F', 'C', 'G', 'D'], flats: [] },
+        'F':  { sharps: [], flats: ['B'] },
+        'Bb': { sharps: [], flats: ['B', 'E'] },
+        'Eb': { sharps: [], flats: ['B', 'E', 'A'] },
+        'Ab': { sharps: [], flats: ['B', 'E', 'A', 'D'] }
+    };
 
-    getFrequencyFromPosition(y) {
-        // Define note frequencies (A4 = 440Hz as reference)
-        const A4 = 440;
-        const notes = {
-            'C4': A4 * Math.pow(2, -9/12),
-            'D4': A4 * Math.pow(2, -7/12),
-            'E4': A4 * Math.pow(2, -5/12),
-            'F4': A4 * Math.pow(2, -4/12),
-            'G4': A4 * Math.pow(2, -2/12),
-            'A4': A4,
-            'B4': A4 * Math.pow(2, 2/12),
-            'C5': A4 * Math.pow(2, 3/12),
-            'D5': A4 * Math.pow(2, 5/12),
-            'E5': A4 * Math.pow(2, 7/12),
-            'F5': A4 * Math.pow(2, 8/12),
-            'G5': A4 * Math.pow(2, 10/12),
-            'A5': A4 * Math.pow(2, 12/12),
-            // Add bass clef notes
-            'F2': A4 * Math.pow(2, -28/12),
-            'G2': A4 * Math.pow(2, -26/12),
-            'A2': A4 * Math.pow(2, -24/12),
-            'B2': A4 * Math.pow(2, -22/12),
-            'C3': A4 * Math.pow(2, -21/12),
-            'D3': A4 * Math.pow(2, -19/12),
-            'E3': A4 * Math.pow(2, -17/12),
-            'F3': A4 * Math.pow(2, -16/12),
-            'G3': A4 * Math.pow(2, -14/12),
-            'A3': A4 * Math.pow(2, -12/12),
-            'B3': A4 * Math.pow(2, -10/12)
+    // Base frequencies for natural notes (A4 = 440Hz)
+    this.baseFrequencies = {
+        'C': -9, 'D': -7, 'E': -5, 'F': -4,
+        'G': -2, 'A': 0,  'B': 2
+    };
+}
 
-        };
+updateKey() {
+    const key = this.keySelector.value;
+    this.currentKey = this.keySignatures[key];
+    this.updateNotePositions();
+}
 
-        // Helper function to get note position and frequency
-        const getNoteInfo = (staffY, position, frequency, noteName) => ({
-            y: staffY + position * this.lineSpacing,
-            frequency: frequency,
-            noteName: noteName
-        });
-
-        // Map Y position to note frequencies (from bottom to top for each staff)
-        const treblePositions = {
-            // Lines (from bottom to top)
-            
-            [this.trebleStaffY + 5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 5, notes.C4, 'C4'),
-            [this.trebleStaffY + 4 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 4, notes.E4, 'E4'),
-            [this.trebleStaffY + 3 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 3, notes.G4, 'G4'),
-            [this.trebleStaffY + 2 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 2, notes.B4, 'B4'),
-            [this.trebleStaffY + this.lineSpacing]: getNoteInfo(this.trebleStaffY, 1, notes.D5, 'D5'),
-            [this.trebleStaffY]: getNoteInfo(this.trebleStaffY, 0, notes.F5, 'F5'),
-            [this.trebleStaffY - 1* this.lineSpacing]: getNoteInfo(this.trebleStaffY, -1, notes.A5, 'A5'),
-            // Spaces (from bottom to top)
-            [this.trebleStaffY + 4.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 4.5, notes.D4, 'D4'),
-            [this.trebleStaffY + 3.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 3.5, notes.F4, 'F4'),
-            [this.trebleStaffY + 2.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 2.5, notes.A4, 'A4'),
-            [this.trebleStaffY + 1.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 1.5, notes.C5, 'C5'),
-            [this.trebleStaffY + 0.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 0.5, notes.E5, 'E5'),
-            [this.trebleStaffY - 0.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, -0.5, notes.G5, 'G5'),
-        };
-
-        const bassPositions = {
-            // Lines (from bottom to top)
-            [this.bassStaffY + 4 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 4, notes.G2, 'G2'),
-            [this.bassStaffY + 3 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 3, notes.B2, 'B2'),
-            [this.bassStaffY + 2 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 2, notes.D3, 'D3'),
-            [this.bassStaffY + this.lineSpacing]: getNoteInfo(this.bassStaffY, 1, notes.F3, 'F3'),
-            [this.bassStaffY]: getNoteInfo(this.bassStaffY, 0, notes.A3, 'A3'),  //A3 is the top line of the bass staff
-            [this.bassStaffY - 1 * this.lineSpacing]: getNoteInfo(this.bassStaffY, -1, notes.C4, 'C4'),
-
-            // Spaces (from bottom to top)
-            [this.bassStaffY + 4.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 4.5, notes.F2, 'F2'),
-            [this.bassStaffY + 3.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 3.5, notes.A2, 'A2'),
-            [this.bassStaffY + 2.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 2.5, notes.C3, 'C3'),
-            [this.bassStaffY + 1.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 1.5, notes.E3, 'E3'),
-            [this.bassStaffY + 0.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 0.5, notes.G3, 'G3'),
-            [this.bassStaffY - 0.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY,-0.5, notes.B3, 'B3'),
-        };
-
-        // Adjust y to center the selection sensitivity
-        y += this.lineSpacing / 8;
-
-        // Find closest note position
-        const positions = {...treblePositions, ...bassPositions};
-        let closestPosition = Object.keys(positions).reduce((a, b) => {
-            return Math.abs(b - y) < Math.abs(a - y) ? b : a;
-        });
-
-        // Only trigger if click is close enough to a note position
-        if (Math.abs(closestPosition - y) < this.lineSpacing / 2) {
-            return positions[closestPosition];
-        }
-
-        return null;
+getNoteNameInKey(baseName, octave) {
+    const noteLetter = baseName.charAt(0);
+    if (this.currentKey.sharps.includes(noteLetter)) {
+        return `${noteLetter}♯${octave}`;
+    } else if (this.currentKey.flats.includes(noteLetter)) {
+        return `${noteLetter}♭${octave}`;
     }
+    return `${noteLetter}${octave}`;
+}
+
+getFrequencyForNote(noteName) {
+    const A4 = 440;
+    const noteLetter = noteName.charAt(0);
+    const octave = parseInt(noteName.slice(-1));
+    
+    // Get base semitones from A4
+    let semitones = this.baseFrequencies[noteLetter];
+    
+    // Adjust for octave
+    semitones += (octave - 4) * 12;
+    
+    // Adjust for key signature
+    if (this.currentKey.sharps.includes(noteLetter)) {
+        semitones += 1;
+    } else if (this.currentKey.flats.includes(noteLetter)) {
+        semitones -= 1;
+    }
+    
+    return A4 * Math.pow(2, semitones/12);
+}
+
+updateNotePositions() {
+    // Generate note positions dynamically
+    const trebleNotes = [];
+    const bassNotes = [];
+    
+    // Treble staff notes (C4 to A5)
+    for (let octave = 4; octave <= 5; octave++) {
+        for (let note of ['C', 'D', 'E', 'F', 'G', 'A', 'B']) {
+            if (octave === 5 && note === 'B') break;
+            const noteName = this.getNoteNameInKey(note, octave);
+            trebleNotes.push({
+                name: noteName,
+                frequency: this.getFrequencyForNote(note + octave)
+            });
+        }
+    }
+
+    // Bass staff notes (F2 to C4)
+    for (let octave = 2; octave <= 4; octave++) {
+        for (let note of ['F', 'G', 'A', 'B', 'C', 'D', 'E']) {
+            if (octave === 4 && note !== 'C') break;
+            const noteName = this.getNoteNameInKey(note, octave);
+            bassNotes.push({
+                name: noteName,
+                frequency: this.getFrequencyForNote(note + octave)
+            });
+        }
+    }
+
+    this.trebleNotes = trebleNotes;
+    this.bassNotes = bassNotes;
+}
+//----------------------------------------------
+getFrequencyFromPosition(y) {
+    // Helper function to get note position and frequency
+    const getNoteInfo = (staffY, position, noteLetter, octave) => {
+        const noteName = this.getNoteNameInKey(noteLetter, octave);
+        return {
+            y: staffY + position * this.lineSpacing,
+            frequency: this.getFrequencyForNote(noteLetter + octave),
+            noteName: noteName
+        };
+    };
+
+    // Map Y position to notes (from bottom to top for each staff)
+    const treblePositions = {
+        // Lines (from bottom to top)
+        [this.trebleStaffY + 5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 5, 'C', 4),
+        [this.trebleStaffY + 4 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 4, 'E', 4),
+        [this.trebleStaffY + 3 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 3, 'G', 4),
+        [this.trebleStaffY + 2 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 2, 'B', 4),
+        [this.trebleStaffY + this.lineSpacing]: getNoteInfo(this.trebleStaffY, 1, 'D', 5),
+        [this.trebleStaffY]: getNoteInfo(this.trebleStaffY, 0, 'F', 5),
+        [this.trebleStaffY - 1 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, -1, 'A', 5),
+        
+        // Spaces (from bottom to top)
+        [this.trebleStaffY + 4.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 4.5, 'D', 4),
+        [this.trebleStaffY + 3.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 3.5, 'F', 4),
+        [this.trebleStaffY + 2.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 2.5, 'A', 4),
+        [this.trebleStaffY + 1.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 1.5, 'C', 5),
+        [this.trebleStaffY + 0.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, 0.5, 'E', 5),
+        [this.trebleStaffY - 0.5 * this.lineSpacing]: getNoteInfo(this.trebleStaffY, -0.5, 'G', 5)
+    };
+
+    const bassPositions = {
+        // Lines (from bottom to top)
+        [this.bassStaffY + 4 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 4, 'G', 2),
+        [this.bassStaffY + 3 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 3, 'B', 2),
+        [this.bassStaffY + 2 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 2, 'D', 3),
+        [this.bassStaffY + this.lineSpacing]: getNoteInfo(this.bassStaffY, 1, 'F', 3),
+        [this.bassStaffY]: getNoteInfo(this.bassStaffY, 0, 'A', 3),
+        [this.bassStaffY - 1 * this.lineSpacing]: getNoteInfo(this.bassStaffY, -1, 'C', 4),
+
+        // Spaces (from bottom to top)
+        [this.bassStaffY + 4.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 4.5, 'F', 2),
+        [this.bassStaffY + 3.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 3.5, 'A', 2),
+        [this.bassStaffY + 2.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 2.5, 'C', 3),
+        [this.bassStaffY + 1.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 1.5, 'E', 3),
+        [this.bassStaffY + 0.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, 0.5, 'G', 3),
+        [this.bassStaffY - 0.5 * this.lineSpacing]: getNoteInfo(this.bassStaffY, -0.5, 'B', 3)
+    };
+
+    // Adjust y to center the selection sensitivity
+    y += this.lineSpacing / 8;
+
+    // Find closest note position
+    const positions = {...treblePositions, ...bassPositions};
+    let closestPosition = Object.keys(positions).reduce((a, b) => {
+        return Math.abs(b - y) < Math.abs(a - y) ? b : a;
+    });
+
+    // Only trigger if click is close enough to a note position
+    if (Math.abs(closestPosition - y) < this.lineSpacing / 2) {
+        return positions[closestPosition];
+    }
+
+    return null;
+}
 
     initAudio() {
         if (this.audioContext) return;
