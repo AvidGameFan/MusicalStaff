@@ -206,14 +206,18 @@ class MusicalStaff {
             'F': 0,    // on bottom line (treble) or second line from top (bass)
             'C': 1.5,  // third space (treble) or top space (bass)
             'G': -0.5, // second space (treble) or fourth space (bass)
-            'D': 1     // third line (treble) or top line (bass)
+            'D': 1,    // third line (treble) or top line (bass)
+            'A': 2.5,  // fourth line (treble) or second line from bottom (bass)
+            'E': 0.5   // second line (treble) or third line (bass)
         };
         
         const flatPositions = {
             'B': 2,    // middle line (treble) or third line (bass)
             'E': .5,    // top line (treble) or fourth line (bass)
             'A': 2.5,    // bottom line (treble) or second line (bass)
-            'D': 1   // second space (treble) or third space (bass)
+            'D': 1,    // second space (treble) or third space (bass)
+            'G': 3,    // second line from bottom (treble) or first line (bass)
+            'C': 1.5   // third space (treble) or top space (bass)
         };
 
         // Draw accidentals for both staffs
@@ -371,10 +375,14 @@ initKeySignatures() {
         'D':  { sharps: ['F', 'C'], flats: [] },
         'A':  { sharps: ['F', 'C', 'G'], flats: [] },
         'E':  { sharps: ['F', 'C', 'G', 'D'], flats: [] },
+        'B':  { sharps: ['F', 'C', 'G', 'D', 'A'], flats: [] },
+        'F#': { sharps: ['F', 'C', 'G', 'D', 'A', 'E'], flats: [] },
         'F':  { sharps: [], flats: ['B'] },
         'Bb': { sharps: [], flats: ['B', 'E'] },
         'Eb': { sharps: [], flats: ['B', 'E', 'A'] },
-        'Ab': { sharps: [], flats: ['B', 'E', 'A', 'D'] }
+        'Ab': { sharps: [], flats: ['B', 'E', 'A', 'D'] },
+        'Db': { sharps: [], flats: ['B', 'E', 'A', 'D', 'G'] },
+        'Gb': { sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C'] }
     };
 
     // Base frequencies for natural notes (A4 = 440Hz)
